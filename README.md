@@ -19,7 +19,7 @@ CommandHub is an AI-powered command launcher and knowledge base for Windows. It 
 
 ## 📦 Installation
 ```powershell
-irm https://yourdomain.com/install | iex
+irm https://raw.githubusercontent.com/adityasing9/CommandHub/main/scripts/install.ps1 | iex
 ```
 
 ## 💻 Development

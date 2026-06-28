@@ -1,5 +1,5 @@
 # CommandHub Installer Script
-# irm https://yourdomain/install | iex
+# irm https://raw.githubusercontent.com/adityasing9/CommandHub/main/scripts/install.ps1 | iex
 
 $appName = "CommandHub"
 $installDir = "$env:LOCALAPPDATA\Programs\$appName"
