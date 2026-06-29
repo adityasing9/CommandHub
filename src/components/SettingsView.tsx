@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
-import { Settings, Key, Trash2, Clock, Save, Plus, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  Settings, Key, Trash2, Clock, Save, Paintbrush,
+  Download, Upload, AlertCircle
+} from 'lucide-react';
+
+const THEMES = [
+  { id: 'dark',        name: 'Dark Mode (Default)', color: 'bg-[#09090b]' },
+  { id: 'amoled',      name: 'AMOLED Black',        color: 'bg-black' },
+  { id: 'dracula',     name: 'Dracula',             color: 'bg-[#282a36]' },
+  { id: 'nord',        name: 'Nord Ice',            color: 'bg-[#2e3440]' },
+  { id: 'catppuccin',  name: 'Catppuccin Mocha',    color: 'bg-[#1e1e2e]' },
+  { id: 'light',       name: 'Light Mode',          color: 'bg-[#f4f4f5] border-zinc-300 border' },
+];
 
 export function SettingsView() {
-  const { settings, saveSetting, fetchSettings, history, fetchHistory, clearHistory, createCustomCommand } = useStore();
+  const { settings, saveSetting, fetchSettings, history, fetchHistory, clearHistory } = useStore();
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
-  const [showAddCmd, setShowAddCmd] = useState(false);
-  const [newCmd, setNewCmd] = useState({ title: '', syntax: '', description: '', risk_level: 'green' });
+  
+  // Theme state
+  const [theme, setTheme] = useState(localStorage.getItem('cmdforge-theme') || 'dark');
+
+  // Import/Export state
+  const [importJson, setImportJson] = useState('');
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -25,21 +42,75 @@ export function SettingsView() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleAddCustomCmd = async () => {
-    if (!newCmd.title || !newCmd.syntax) return;
-    await createCustomCommand(newCmd);
-    setNewCmd({ title: '', syntax: '', description: '', risk_level: 'green' });
-    setShowAddCmd(false);
+  const handleThemeChange = (id: string) => {
+    setTheme(id);
+    localStorage.setItem('cmdforge-theme', id);
+    document.body.className = '';
+    if (id !== 'dark') {
+      document.body.classList.add(`theme-${id}`);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/export');
+      if (res.ok) {
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        setExportUrl(url);
+      }
+    } catch {}
+  };
+
+  const handleImport = async () => {
+    if (!importJson.trim()) return;
+    try {
+      const parsed = JSON.parse(importJson);
+      const res = await fetch('http://127.0.0.1:8000/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setImportStatus(data.message || 'Imported successfully!');
+        setImportJson('');
+      } else {
+        setImportStatus('Failed to import commands.');
+      }
+    } catch (e) {
+      setImportStatus('Invalid JSON format.');
+    }
+    setTimeout(() => setImportStatus(null), 3000);
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto w-full space-y-8">
+    <div className="p-6 max-w-3xl mx-auto w-full space-y-8 pb-20">
       <div>
         <h1 className="text-3xl font-bold mb-1 flex items-center gap-3">
           <Settings size={28} className="text-zinc-400"/> Settings
         </h1>
-        <p className="text-zinc-400 text-sm">Configure CommandHub to your preferences</p>
+        <p className="text-zinc-400 text-sm">Configure themes, keys, and backup custom libraries</p>
       </div>
+
+      {/* Theme Options */}
+      <section className="glass-panel p-6 rounded-xl space-y-4">
+        <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2"><Paintbrush size={18} className="text-blue-400"/> Themes</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {THEMES.map(t => (
+            <button key={t.id} onClick={() => handleThemeChange(t.id)}
+              className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
+                theme === t.id
+                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-lg'
+                  : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10 hover:text-zinc-200'
+              }`}>
+              <span className={`w-4 h-4 rounded-full shrink-0 ${t.color}`}/>
+              <span className="text-xs font-semibold">{t.name}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* AI Settings */}
       <section className="glass-panel p-6 rounded-xl space-y-4">
@@ -61,38 +132,43 @@ export function SettingsView() {
         </div>
       </section>
 
-      {/* Custom Commands */}
+      {/* Import / Export Settings */}
       <section className="glass-panel p-6 rounded-xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2"><Plus size={18} className="text-blue-400"/> Custom Commands</h2>
-          <button onClick={() => setShowAddCmd(!showAddCmd)}
-            className="text-sm text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
-            {showAddCmd ? <><X size={14}/> Cancel</> : <><Plus size={14}/> Add Command</>}
-          </button>
-        </div>
-        {showAddCmd && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/10">
-            <input value={newCmd.title} onChange={e => setNewCmd({...newCmd, title: e.target.value})}
-              placeholder="Command Title *" className="w-full bg-zinc-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-blue-500/50 transition-colors"/>
-            <input value={newCmd.syntax} onChange={e => setNewCmd({...newCmd, syntax: e.target.value})}
-              placeholder="Command Syntax * (e.g. echo hello)" className="w-full bg-zinc-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-zinc-200 outline-none focus:border-blue-500/50 transition-colors"/>
-            <input value={newCmd.description} onChange={e => setNewCmd({...newCmd, description: e.target.value})}
-              placeholder="Description" className="w-full bg-zinc-950/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-blue-500/50 transition-colors"/>
-            <div className="flex items-center gap-3">
-              <label className="text-xs text-zinc-400">Risk Level:</label>
-              {(['green','yellow','red'] as const).map(r => (
-                <button key={r} onClick={() => setNewCmd({...newCmd, risk_level: r})}
-                  className={`text-xs px-3 py-1 rounded-full border transition-all ${newCmd.risk_level === r ? (r === 'green' ? 'bg-green-500/20 text-green-400 border-green-500/30' : r === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30') : 'border-white/10 text-zinc-500 hover:border-white/20'}`}>
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </button>
-              ))}
-            </div>
-            <button onClick={handleAddCustomCmd}
-              className="w-full py-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-sm font-medium transition-colors">
-              Add to Library
+        <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2"><Upload size={18} className="text-emerald-400"/> Import / Export</h2>
+        <div className="space-y-4">
+          
+          <div className="flex gap-3">
+            <button onClick={handleExport}
+              className="flex-1 py-2.5 bg-white/5 border border-white/10 text-zinc-300 hover:bg-white/10 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+              <Download size={14}/> Generate Backup JSON
             </button>
-          </motion.div>
-        )}
+            {exportUrl && (
+              <a href={exportUrl} download="cmdforge-backup.json"
+                className="px-4 py-2.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 border border-emerald-500/30 transition-colors">
+                Download file
+              </a>
+            )}
+          </div>
+
+          <div className="border-t border-white/5 pt-4 space-y-2">
+            <label className="block text-xs font-semibold text-zinc-400">Import Commands (Paste JSON array)</label>
+            <textarea
+              value={importJson} onChange={e => setImportJson(e.target.value)}
+              placeholder='{ "commands": [ { "title": "Test", "syntax": "echo test", "description": "test", "tags": "test" } ] }'
+              className="w-full h-24 bg-zinc-950/50 border border-white/10 rounded-xl px-4 py-2.5 font-mono text-xs text-zinc-200 outline-none focus:border-emerald-500/50 transition-colors resize-none"
+            />
+            <button onClick={handleImport}
+              className="w-full py-2.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+              <Upload size={14}/> Import Data
+            </button>
+            {importStatus && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-2">
+                <AlertCircle size={14} className="text-blue-400"/> {importStatus}
+              </div>
+            )}
+          </div>
+
+        </div>
       </section>
 
       {/* Execution History */}
@@ -123,7 +199,7 @@ export function SettingsView() {
 
       {/* App Info */}
       <section className="glass-panel p-6 rounded-xl">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-4">About CommandHub</h2>
+        <h2 className="text-lg font-semibold text-zinc-100 mb-4">About CmdForge</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           {[
             ['Version', '1.0.0'],

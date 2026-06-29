@@ -66,3 +66,47 @@
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   }
 }
+
+/* ── Theme Selectors ── */
+body.theme-amoled {
+  --color-background: #000000;
+  --color-card: rgba(0, 0, 0, 0.85);
+  --color-border: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-dracula {
+  --color-background: #282a36;
+  --color-foreground: #f8f8f2;
+  --color-card: rgba(40, 42, 54, 0.8);
+  --color-border: rgba(98, 114, 164, 0.3);
+  --color-primary: #bd93f9;
+  --color-ring: #ff79c6;
+}
+
+body.theme-nord {
+  --color-background: #2e3440;
+  --color-foreground: #d8dee9;
+  --color-card: rgba(46, 52, 64, 0.8);
+  --color-border: rgba(76, 86, 106, 0.4);
+  --color-primary: #88c0d0;
+  --color-ring: #8fbcbb;
+}
+
+body.theme-catppuccin {
+  --color-background: #1e1e2e;
+  --color-foreground: #cdd6f4;
+  --color-card: rgba(30, 30, 46, 0.85);
+  --color-border: rgba(147, 153, 178, 0.2);
+  --color-primary: #cba6f7;
+  --color-ring: #f5c2e7;
+}
+
+body.theme-light {
+  --color-background: #f4f4f5;
+  --color-foreground: #09090b;
+  --color-card: rgba(255, 255, 255, 0.85);
+  --color-border: rgba(9, 9, 11, 0.08);
+  --color-primary: #3b82f6;
+  --color-ring: #3b82f6;
+}
+

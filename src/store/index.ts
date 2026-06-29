@@ -9,6 +9,8 @@ export interface Command {
   syntax: string;
   risk_level: string;
   is_custom?: boolean;
+  requirements?: string;
+  docs_url?: string;
   category?: { name: string; icon: string; id: number };
 }
 

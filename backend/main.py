@@ -2,14 +2,17 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from typing import List, Optional
 import subprocess
 import uvicorn
 import datetime
+import json
 
 from app.db import models, database
 from app.api import schemas
 from app.plugins import manager
+from app.services import scanner, packages, dashboard
 
 # Create tables
 models.Base.metadata.create_all(bind=database.engine)
@@ -17,7 +20,7 @@ models.Base.metadata.create_all(bind=database.engine)
 # Load plugins
 loaded_plugins = manager.manager.discover_and_load()
 
-app = FastAPI(title="CommandHub Local API")
+app = FastAPI(title="CmdForge Local API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,10 +37,14 @@ def get_db():
     finally:
         db.close()
 
+# Request schemas for imports
+class ImportRequest(BaseModel):
+    commands: List[schemas.CommandBase]
+
 # ─── ROOT ────────────────────────────────────────────
 @app.get("/")
 def read_root():
-    return {"status": "ok", "version": "1.0.0", "message": "CommandHub Local API is running"}
+    return {"status": "ok", "version": "1.0.0", "message": "CmdForge Local API is running"}
 
 # ─── COMMANDS ────────────────────────────────────────
 @app.get("/api/commands", response_model=List[schemas.CommandResponse])
@@ -187,6 +194,84 @@ def set_setting(key: str, update: schemas.SettingUpdate, db: Session = Depends(g
 @app.get("/api/plugins")
 def get_plugins():
     return {"loaded": list(manager.manager.loaded_plugins.keys()), "count": len(manager.manager.loaded_plugins)}
+
+# ─── SYSTEM SCANNER ──────────────────────────────────
+@app.get("/api/system/scan")
+def get_system_scan():
+    return scanner.scan_system()
+
+# ─── DASHBOARD STATS ──────────────────────────────────
+@app.get("/api/dashboard/stats")
+def get_dashboard_statistics(db: Session = Depends(get_db)):
+    return dashboard.get_dashboard_stats(db)
+
+# ─── PACKAGE MANAGER ──────────────────────────────────
+@app.get("/api/packages/search")
+def search_packages_api(pm: str, q: str):
+    return packages.search_packages(pm, q)
+
+class InstallPackageRequest(BaseModel):
+    manager: str
+    package_name: str
+
+@app.post("/api/packages/install")
+def install_package_api(req: InstallPackageRequest, db: Session = Depends(get_db)):
+    cmd = packages.get_install_command(req.manager, req.package_name)
+    
+    # Re-use streaming output logic
+    def stream_output():
+        try:
+            full_cmd = ["powershell", "-NoProfile", "-Command", cmd]
+            proc = subprocess.Popen(
+                full_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            for line in iter(proc.stdout.readline, ""):
+                yield line
+            proc.wait()
+            yield f"\n[Installation Finished. Exit Code: {proc.returncode}]"
+        except Exception as e:
+            yield f"[ERROR] {str(e)}"
+            
+    return StreamingResponse(stream_output(), media_type="text/plain")
+
+# ─── IMPORT / EXPORT ──────────────────────────────────
+@app.get("/api/export")
+def export_data(db: Session = Depends(get_db)):
+    commands = db.query(models.Command).all()
+    cmd_data = []
+    for c in commands:
+        cmd_data.append({
+            "title": c.title,
+            "description": c.description,
+            "syntax": c.syntax,
+            "risk_level": c.risk_level,
+            "tags": c.tags
+        })
+    return {"commands": cmd_data}
+
+@app.post("/api/import")
+def import_data(req: ImportRequest, db: Session = Depends(get_db)):
+    # Default to placing imported commands in Windows category
+    win_cat = db.query(models.Category).filter(models.Category.name == "Windows").first()
+    cat_id = win_cat.id if win_cat else 1
+    
+    for c in req.commands:
+        db_cmd = models.Command(
+            title=c.title,
+            description=c.description,
+            syntax=c.syntax,
+            risk_level=c.risk_level or "green",
+            tags=c.tags,
+            category_id=cat_id,
+            is_custom=True
+        )
+        db.add(db_cmd)
+    db.commit()
+    return {"message": f"Successfully imported {len(req.commands)} commands"}
 
 # ─── AI ──────────────────────────────────────────────
 from app.core import ai
