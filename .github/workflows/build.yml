@@ -1,45 +1,43 @@
-name: Build CommandHub
+name: Release Build
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  release:
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         platform: [windows-latest]
 
     runs-on: ${{ matrix.platform }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+      - name: setup rust
+        uses: actions-rust/toolchain@v1
         with:
           toolchain: stable
-          profile: minimal
-          override: true
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Frontend Dependencies
+      - name: install dependencies
         run: npm install
 
-      - name: Install Backend Dependencies
-        run: pip install -r backend/requirements.txt
-
-      - name: Build App
-        run: npm run tauri build
+      - name: build tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'CmdForge v__VERSION__'
+          releaseBody: 'See the assets below to install.'
+          releaseDraft: true
+          prerelease: false
