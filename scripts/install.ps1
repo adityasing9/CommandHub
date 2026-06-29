@@ -1,4 +1,4 @@
-# CommandHub Interactive Installer
+# CmdForge Interactive Installer
 # Usage: irm https://raw.githubusercontent.com/adityasing9/CommandHub/main/scripts/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
@@ -9,17 +9,17 @@ $ErrorActionPreference = "Stop"
 function Write-Header {
     Clear-Host
     Write-Host ""
-    Write-Host "  ██████╗ ███╗   ███╗██████╗    ██╗  ██╗██╗   ██╗██████╗ " -ForegroundColor Cyan
-    Write-Host " ██╔════╝ ████╗ ████║██╔══██╗   ██║  ██║██║   ██║██╔══██╗" -ForegroundColor Cyan
-    Write-Host " ██║      ██╔████╔██║██║  ██║   ███████║██║   ██║██████╔╝" -ForegroundColor Cyan
-    Write-Host " ██║      ██║╚██╔╝██║██║  ██║   ██╔══██║██║   ██║██╔══██╗" -ForegroundColor Cyan
-    Write-Host " ╚██████╗ ██║ ╚═╝ ██║██████╔╝   ██║  ██║╚██████╔╝██████╔╝" -ForegroundColor Cyan
-    Write-Host "  ╚═════╝ ╚═╝     ╚═╝╚═════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ " -ForegroundColor Cyan
+    Write-Host "  ██████╗███╗   ███╗██████╗     ███████╗██████╗ ██████╗  ██████╗ ███████╗" -ForegroundColor Cyan
+    Write-Host " ██╔════╝████╗ ████║██╔══██╗    ██╔════╝██╔══██╗██╔══██╗██╔════╝ ██╔════╝" -ForegroundColor Cyan
+    Write-Host " ██║     ██╔████╔██║██║  ██║    █████╗  ██████╔╝██████╔╝██║  ███╗█████╗  " -ForegroundColor Cyan
+    Write-Host " ██║     ██║╚██╔╝██║██║  ██║    ██╔══╝  ██╔══██╗██╔══██╗██║   ██║██╔══╝  " -ForegroundColor Cyan
+    Write-Host " ╚██████╗██║ ╚═╝ ██║██████╔╝    ██║     ██║  ██║██║  ██║╚██████╔╝███████╗" -ForegroundColor Cyan
+    Write-Host "  ╚═════╝╚═╝     ╚═╝╚═════╝     ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Search. Learn. Execute." -ForegroundColor DarkCyan
     Write-Host "  github.com/adityasing9/CommandHub" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  ─────────────────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "  ────────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -38,8 +38,9 @@ function Pause-Menu {
 # ─────────────────────────────────────────
 #  CONSTANTS
 # ─────────────────────────────────────────
-$AppName    = "CommandHub"
+$AppName    = "CmdForge"
 $InstallDir = "$env:LOCALAPPDATA\Programs\$AppName"
+$ShortcutPath = "$env:USERPROFILE\Desktop\$AppName.lnk"
 $RepoURL    = "https://github.com/adityasing9/CommandHub"
 $ReleaseAPI = "https://api.github.com/repos/adityasing9/CommandHub/releases/latest"
 
@@ -56,7 +57,7 @@ function Show-SystemInfo {
     $ram     = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
     $arch    = $env:PROCESSOR_ARCHITECTURE
     $psVer   = $PSVersionTable.PSVersion.ToString()
-    $already = if (Test-Path "$InstallDir\CommandHub.exe") { "Yes ✔" } else { "Not installed" }
+    $already = if (Test-Path "$InstallDir\$AppName.exe") { "Yes ✔" } else { "Not installed" }
 
     Write-Host "  OS           : $os" -ForegroundColor White
     Write-Host "  Architecture : $arch" -ForegroundColor White
@@ -71,9 +72,9 @@ function Show-SystemInfo {
 
 function Install-App {
     Write-Header
-    Write-Host "  ═══════════════ INSTALL CommandHub ════════════════" -ForegroundColor DarkCyan
+    Write-Host "  ═══════════════ INSTALL $AppName ════════════════" -ForegroundColor DarkCyan
     Write-Host ""
-    Write-Info "This will install CommandHub on your system."
+    Write-Info "This will install $AppName on your system."
     Write-Host ""
 
     $confirm = Read-Host "  Proceed with installation? (Y/N)"
@@ -92,7 +93,7 @@ function Install-App {
 
     Write-Step "Fetching latest release info from GitHub..."
     try {
-        $release = Invoke-RestMethod -Uri $ReleaseAPI -Headers @{ "User-Agent" = "CommandHub-Installer" }
+        $release = Invoke-RestMethod -Uri $ReleaseAPI -Headers @{ "User-Agent" = "CmdForge-Installer" }
         $version = $release.tag_name
         Write-Success "Latest version: $version"
 
@@ -101,27 +102,27 @@ function Install-App {
 
         if ($asset) {
             Write-Step "Downloading $($asset.name)..."
-            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$InstallDir\CommandHub.exe" -UseBasicParsing
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "$InstallDir\$AppName.exe" -UseBasicParsing
             Write-Success "Download complete."
         } else {
-            Write-Warn "No Windows binary found in the release. The app is still in development."
-            Write-Warn "Clone and build from source: $RepoURL"
+            Write-Warn "No Windows binary found in the release yet (GitHub Actions build may still be running)."
+            Write-Warn "Clone and run from source: $RepoURL"
         }
     } catch {
-        Write-Warn "Could not fetch release (repo may not have a release yet)."
+        Write-Warn "Could not fetch release assets."
         Write-Info "You can build from source: git clone $RepoURL"
     }
 
     Write-Step "Creating Desktop shortcut..."
     try {
         $WshShell = New-Object -ComObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\$AppName.lnk")
-        $Shortcut.TargetPath = "$InstallDir\CommandHub.exe"
-        $Shortcut.IconLocation = "$InstallDir\CommandHub.exe"
+        $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+        $Shortcut.TargetPath = "$InstallDir\$AppName.exe"
+        $Shortcut.IconLocation = "$InstallDir\$AppName.exe"
         $Shortcut.Save()
         Write-Success "Shortcut created on Desktop."
     } catch {
-        Write-Warn "Could not create shortcut (binary not found yet)."
+        Write-Warn "Could not create shortcut (binary not downloaded yet)."
     }
 
     Write-Step "Adding to PATH..."
@@ -134,17 +135,17 @@ function Install-App {
     }
 
     Write-Host ""
-    Write-Success "CommandHub installation complete!"
-    Write-Info "Run 'CommandHub' from any terminal or use the Desktop shortcut."
+    Write-Success "$AppName installation complete!"
+    Write-Info "Run '$AppName' from any terminal or use the Desktop shortcut."
     Write-Host ""
     Pause-Menu
 }
 
 function Uninstall-App {
     Write-Header
-    Write-Host "  ══════════════ UNINSTALL CommandHub ══════════════" -ForegroundColor Red
+    Write-Host "  ══════════════ UNINSTALL $AppName ══════════════" -ForegroundColor Red
     Write-Host ""
-    Write-Warn "This will remove CommandHub from your system."
+    Write-Warn "This will remove $AppName from your system."
     Write-Host ""
 
     $confirm = Read-Host "  Are you sure you want to uninstall? (Y/N)"
@@ -159,13 +160,12 @@ function Uninstall-App {
         Remove-Item -Recurse -Force $InstallDir
         Write-Success "Removed: $InstallDir"
     } else {
-        Write-Warn "Install directory not found. Already uninstalled?"
+        Write-Warn "Install directory not found."
     }
 
     Write-Step "Removing Desktop shortcut..."
-    $shortcut = "$env:USERPROFILE\Desktop\$AppName.lnk"
-    if (Test-Path $shortcut) {
-        Remove-Item $shortcut -Force
+    if (Test-Path $ShortcutPath) {
+        Remove-Item $ShortcutPath -Force
         Write-Success "Shortcut removed."
     }
 
@@ -176,7 +176,7 @@ function Uninstall-App {
     Write-Success "Removed from PATH."
 
     Write-Host ""
-    Write-Success "CommandHub has been uninstalled."
+    Write-Success "$AppName has been uninstalled."
     Write-Host ""
     Pause-Menu
 }
@@ -187,13 +187,13 @@ function Check-ForUpdates {
     Write-Host ""
     Write-Step "Checking latest release on GitHub..."
     try {
-        $release = Invoke-RestMethod -Uri $ReleaseAPI -Headers @{ "User-Agent" = "CommandHub-Installer" }
+        $release = Invoke-RestMethod -Uri $ReleaseAPI -Headers @{ "User-Agent" = "CmdForge-Installer" }
         Write-Host ""
         Write-Success "Latest version : $($release.tag_name)"
         Write-Info "Released on    : $($release.published_at)"
         Write-Info "Release notes  : $($release.html_url)"
         Write-Host ""
-        Write-Info "Run option [1] Install/Update to get the latest version."
+        Write-Info "Run option [1] Install/Update to download this version."
     } catch {
         Write-Warn "Could not reach GitHub. Check your internet connection."
     }
@@ -203,7 +203,7 @@ function Check-ForUpdates {
 
 function Open-GitHub {
     Write-Header
-    Write-Info "Opening GitHub repository in your browser..."
+    Write-Info "Opening GitHub repository..."
     Start-Process $RepoURL
     Write-Success "Opened: $RepoURL"
     Pause-Menu
@@ -216,14 +216,14 @@ do {
     Write-Header
     Write-Host "  What would you like to do?" -ForegroundColor White
     Write-Host ""
-    Write-Host "    [1]  Install / Update CommandHub" -ForegroundColor Green
+    Write-Host "    [1]  Install / Update CmdForge" -ForegroundColor Green
     Write-Host "    [2]  Check for Updates" -ForegroundColor Cyan
     Write-Host "    [3]  System Information" -ForegroundColor Cyan
     Write-Host "    [4]  Open GitHub Repository" -ForegroundColor Cyan
-    Write-Host "    [5]  Uninstall CommandHub" -ForegroundColor Yellow
+    Write-Host "    [5]  Uninstall CmdForge" -ForegroundColor Yellow
     Write-Host "    [Q]  Quit" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  ─────────────────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "  ────────────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
     Write-Host ""
 
     $choice = Read-Host "  Enter your choice"
@@ -236,13 +236,13 @@ do {
         "5" { Uninstall-App }
         "Q" {
             Write-Header
-            Write-Info "Thanks for using CommandHub. Goodbye!"
+            Write-Info "Thanks for using CmdForge. Goodbye!"
             Write-Host ""
             break
         }
         default {
             Write-Header
-            Write-Warn "Invalid choice '$choice'. Please enter 1-5 or Q."
+            Write-Warn "Invalid choice '$choice'."
             Start-Sleep -Seconds 1
         }
     }
