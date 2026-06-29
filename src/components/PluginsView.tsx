@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '../store';
 import { Layers, Package, RefreshCw, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';

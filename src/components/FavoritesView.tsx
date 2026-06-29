@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '../store';
-import { Star, Clock, Trash2, Copy, Play } from 'lucide-react';
+import { Star, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function FavoritesView() {

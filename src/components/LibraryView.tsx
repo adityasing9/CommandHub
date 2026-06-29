@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useStore, Command } from '../store';
 import {
-  Search, ChevronRight, Sparkles, X, AlertTriangle, Info, Terminal as TerminalIcon,
-  Star, Copy, Check, Play, ShieldAlert, ShieldCheck, ShieldX, Filter
+  Search, Sparkles, X, AlertTriangle, Info, Terminal as TerminalIcon,
+  Star, Copy, Check, Play, ShieldAlert, ShieldCheck, ShieldX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

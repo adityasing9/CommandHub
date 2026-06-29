@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../store';
-import { Settings, Key, Moon, Sun, Trash2, Clock, Save, Plus, X } from 'lucide-react';
+import { Settings, Key, Trash2, Clock, Save, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function SettingsView() {
@@ -110,7 +110,7 @@ export function SettingsView() {
           <p className="text-zinc-600 text-sm text-center py-4">No commands executed yet.</p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-auto pr-1">
-            {history.map((entry, i) => (
+            {history.map((entry) => (
               <div key={entry.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2.5 border border-white/5">
                 <div className={`w-2 h-2 rounded-full shrink-0 ${entry.exit_code === 0 ? 'bg-green-500' : entry.exit_code == null ? 'bg-zinc-500' : 'bg-red-500'}`}/>
                 <code className="text-xs text-zinc-300 flex-1 truncate">{entry.raw_command}</code>
